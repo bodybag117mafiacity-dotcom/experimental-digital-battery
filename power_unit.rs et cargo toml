@@ -1,0 +1,133 @@
+use std::sync::{Arc, Mutex};
+use tokio::time::{sleep, Duration, Instant};
+
+/// Batterie numérique contenant l'énergie générée
+#[derive(Debug)]
+pub struct DigitalBattery {
+    pub capacity: u64,
+    pub energy: u64,
+}
+
+impl DigitalBattery {
+    pub fn new(capacity: u64) -> Self {
+        Self {
+            capacity,
+            energy: 0,
+        }
+    }
+
+    /// Ajoute de l'énergie à la batterie sans dépasser sa capacité.
+    pub fn charge(&mut self, amount: u64) {
+        self.energy = self
+            .energy
+            .saturating_add(amount)
+            .min(self.capacity);
+    }
+
+    pub fn energy(&self) -> u64 {
+        self.energy
+    }
+}
+
+/// API qui contient et gère la batterie numérique.
+#[derive(Clone)]
+pub struct EnergyApi {
+    battery: Arc<Mutex<DigitalBattery>>,
+}
+
+impl EnergyApi {
+    pub fn new(capacity: u64) -> Self {
+        Self {
+            battery: Arc::new(Mutex::new(DigitalBattery::new(capacity))),
+        }
+    }
+
+    /// Injecte du Power dans la batterie.
+    pub fn add_power(&self, power: u64) {
+        let mut battery = self.battery.lock().unwrap();
+        battery.charge(power);
+    }
+
+    /// Retourne l'énergie actuellement stockée.
+    pub fn balance(&self) -> u64 {
+        let battery = self.battery.lock().unwrap();
+        battery.energy()
+    }
+}
+
+/// Une Power Unit produisant une quantité définie de Power.
+pub struct PowerUnit {
+    pub power_per_pulse: u64,
+    pub charge_duration: Duration,
+    pub pulse_interval: Duration,
+}
+
+impl PowerUnit {
+    /// Crée une Power Unit.
+    ///
+    /// `power_per_pulse` = quantité de Power produite par pulse.
+    /// La durée totale est fixée à 1 heure.
+    pub fn new(power_per_pulse: u64) -> Self {
+        Self {
+            power_per_pulse,
+            charge_duration: Duration::from_secs(60 * 60),
+            pulse_interval: Duration::from_secs(1),
+        }
+    }
+
+    /// Lance le cycle de génération.
+    ///
+    /// La Unit produit du Power pendant 1 heure,
+    /// puis s'arrête automatiquement.
+    pub async fn run(&self, api: EnergyApi) {
+        let start = Instant::now();
+
+        println!("Power Unit started.");
+        println!("Power per pulse: {}", self.power_per_pulse);
+        println!("Charging duration: 1 hour");
+
+        while start.elapsed() < self.charge_duration {
+            api.add_power(self.power_per_pulse);
+
+            println!(
+                "Power generated: {} | Battery: {}",
+                self.power_per_pulse,
+                api.balance()
+            );
+
+            sleep(self.pulse_interval).await;
+        }
+
+        println!("1 hour reached.");
+        println!("Power Unit stopped automatically.");
+        println!("Final battery energy: {}", api.balance());
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    // Batterie numérique.
+    let api = EnergyApi::new(1_000_000);
+
+    // Power Unit de 1 Power.
+    let unit = PowerUnit::new(1);
+
+    // Démarre le cycle.
+    // La Unit fonctionne pendant 1 heure,
+    // puis s'arrête automatiquement.
+    unit.run(api.clone()).await;
+
+    println!("Energy available after shutdown: {}", api.balance());
+}
+
+
+cargo.toml
+[package]
+name = "power_unit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+
+
