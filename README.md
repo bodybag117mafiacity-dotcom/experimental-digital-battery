@@ -191,4 +191,7 @@ Personal, educational, or research use is allowed **without royalties**.
 
 For commercial licensing inquiries, contact the author directly.
 
-
+Chaque PowerUnit est un worker énergétique.
+Une batterie digitale doit contenir plusieurs workers, chacun générant de l’énergie via un pulse.
+La batterie absorbe l’énergie de tous les workers pour remplir son réservoir.
+Le système doit être testé avec une liste de scénarios pour valider la stabilité, la surcharge, la décharge et la production énergétique.
