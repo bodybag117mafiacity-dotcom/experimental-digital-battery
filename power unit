@@ -1,0 +1,6 @@
+Une PowerUnit est un worker énergétique.  
+Chaque worker génère de l’énergie virtuelle via un pulse.
+Une batterie digitale doit contenir plusieurs workers, pas un seul.
+La batterie absorbe l’énergie produite par tous les workers et la stocke dans son réservoir.
+Le système doit être testé avec une liste de scénarios (pulse, surcharge, décharge, stabilité, etc.).
+Les workers sont indépendants, mais ils travaillent ensemble pour alimenter la batterie.
