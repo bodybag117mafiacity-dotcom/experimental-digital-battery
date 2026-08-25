@@ -1,0 +1,123 @@
+# power_unit.py
+
+class PowerUnit:
+    def __init__(self, name="Unit-1", base_power=10):
+        self.name = name
+        self.base_power = base_power      # puissance de base (10)
+        self.pulse_power = base_power     # puissance actuelle par pulse
+        self.energy = 0                   # énergie accumulée
+        self.heat = 0                     # chaleur générée
+        self.stability = 100              # stabilité de l’unité
+        self.cycles = 0                   # nombre de pulses
+
+    def pulse(self):
+        """
+        Un pulse = injection d'énergie.
+        Plus la puissance est haute, plus ça chauffe, plus ça déstabilise.
+        """
+        self.cycles += 1
+        self.energy += self.pulse_power
+        self.heat += self.pulse_power * 0.4
+        self.stability -= self.heat * 0.05
+
+        return {
+            "name": self.name,
+            "cycles": self.cycles,
+            "energy": self.energy,
+            "heat": round(self.heat, 2),
+            "stability": round(self.stability, 2),
+            "pulse_power": self.pulse_power,
+        }
+
+    def boost(self, amount: int):
+        """
+        Augmente la puissance de pulse (mode turbo).
+        """
+        self.pulse_power += amount
+
+    def normalize(self):
+        """
+        Essaie de refroidir et stabiliser l’unité.
+        """
+        self.heat *= 0.5
+        self.stability = min(100, self.stability + 10)
+
+    def status(self):
+        return {
+            "name": self.name,
+            "base_power": self.base_power,
+            "pulse_power": self.pulse_power,
+            "energy": self.energy,
+            "heat": round(self.heat, 2),
+            "stability": round(self.stability, 2),
+            "cycles": self.cycles,
+        }
+
+
+# battery_core.py
+
+class DigitalBattery:
+    def __init__(self, capacity=1000):
+        self.capacity = capacity          # capacité max de la batterie
+        self.level = 0                    # niveau actuel
+        self.units = []                   # unités connectées
+        self.overload = False             # surcharge
+        self.health = 100                 # santé globale de la batterie
+
+    def add_unit(self, unit: PowerUnit):
+        self.units.append(unit)
+
+    def absorb_from_units(self):
+        """
+        Prend l’énergie produite par les unités et la stocke dans la batterie.
+        """
+        total_energy = sum(u.energy for u in self.units)
+        self.level += total_energy
+        # on vide l’énergie des unités une fois absorbée
+        for u in self.units:
+            u.energy = 0
+
+        if self.level > self.capacity:
+            self.overload = True
+            self.health -= (self.level - self.capacity) * 0.1
+
+        return self.status()
+
+    def discharge(self, amount: int):
+        """
+        Décharge la batterie (sortie d’énergie).
+        """
+        self.level = max(0, self.level - amount)
+        self.health = max(0, self.health - amount * 0.01)
+        if self.level <= self.capacity:
+            self.overload = False
+
+        return self.status()
+
+    def status(self):
+        return {
+            "capacity": self.capacity,
+            "level": self.level,
+            "overload": self.overload,
+            "health": round(self.health, 2),
+            "units_count": len(self.units),
+        }
+
+
+if __name__ == "__main__":
+    # Exemple d’utilisation
+    unit = PowerUnit(name="Unit-1", base_power=10)
+    battery = DigitalBattery(capacity=500)
+
+    # On connecte l’unité à la batterie
+    battery.add_unit(unit)
+
+    # On pulse plusieurs fois
+    for _ in range(5):
+        print("Pulse:", unit.pulse())
+
+    # La batterie absorbe ce que l’unité a généré
+    print("Battery after absorb:", battery.absorb_from_units())
+
+    # On décharge un peu
+    print("Battery after discharge:", battery.discharge(100))
